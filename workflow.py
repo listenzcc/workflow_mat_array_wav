@@ -16,11 +16,33 @@ length = len(sounds[0][0])
 print(num, length)
 
 framerate = 44100
+print(length / framerate)
 times = np.array(range(length)) / framerate
 for j, s in enumerate(sounds):
     plt.plot(times, s.transpose()/2+j, label=j)
 plt.legend()
 plt.show()
+
+def parse(sound_array):
+    array = sound_array.copy()
+    array += 1
+    array *= 1000
+    out = array.ravel().astype(np.short)
+    print(out)
+    return out
+
+
+def save_wave(wave_array, wavename, framerate=framerate):
+    with wave.open(wavename, 'wb') as f:
+        f.setnchannels(1)
+        f.setsampwidth(2)
+        f.setframerate(framerate)
+        f.writeframes(wave_array)
+
+
+for j in range(8):
+    print(j)
+    save_wave(parse(sounds[j]), 'wave_%d.wav' % j)
 
 
 def parse(sound_array):
