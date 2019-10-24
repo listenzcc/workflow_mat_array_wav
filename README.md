@@ -2,4 +2,4 @@
 
 ## Read mat file
 ## Fetch array
-## Save it into mp4 audio file
+## Save it into wav audio file
