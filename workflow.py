@@ -1,8 +1,10 @@
+import scipy.fftpack
 from pprint import pprint
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.io as sio
 import wave
+from matplotlib.backends.backend_pdf import PdfPages
 
 # Read mat file
 fname = 'speechToken.mat'
@@ -20,13 +22,61 @@ length = len(sounds[0][0])
 print(num, length)
 
 # Plot waveforms
+
 framerate = 44100
+fs = 1 / framerate
+freq_range = (300, 3000)
 print(length / framerate)
 times = np.array(range(length)) / framerate
+
+
+def myfft(data, fs=fs):
+    fft = scipy.fftpack.fft(data)
+    psd = np.abs(fft) ** 2
+    fftfreq = scipy.fftpack.fftfreq(len(data), fs)
+    return fft, psd, fftfreq
+
+
+def myifft(fft, fftfreq):
+    fft = fft.copy()
+    fft[np.abs(fftfreq) < freq_range[0]] = 0
+    fft[np.abs(fftfreq) > freq_range[1]] = 0
+    return np.real(scipy.fftpack.ifft(fft)), fft
+
+
+figs = []
 for j, s in enumerate(sounds):
-    plt.plot(times, s.transpose()/2+j, label=j)
-plt.legend()
-plt.show()
+    s = s.copy().ravel()
+    fft, psd, fftfreq = myfft(s)
+    select = fftfreq > 0
+
+    fig, axes = plt.subplots(2, 2, figsize=(10, 4))
+    ax = axes[0, 0]
+    ax.plot(times, s, label=j)
+    ax.legend()
+
+    ax = axes[0, 1]
+    ax.plot(fftfreq[select], 10 * np.log10(psd[select]))
+    ax.set_xlabel('Frequency')
+    ax.set_ylabel('PSD (dB)')
+
+    slow, slow_fft = myifft(fft, fftfreq)
+    axes[0, 0].plot(times, slow)
+    slow_psd = np.abs(slow_fft) ** 2
+    axes[0, 1].plot(fftfreq[select], 10 * np.log10(slow_psd[select]))
+
+    axes[1, 0].plot(times, slow)
+    axes[1, 1].plot(fftfreq[select], 10 * np.log10(psd[select]))
+    axes[1, 1].set_xlim(freq_range)
+
+    fig.suptitle('Sound: %d' % j)
+    figs.append(fig)
+
+with PdfPages('multipage_pdf.pdf') as pdf:
+    for fig in figs:
+        pdf.savefig(fig)
+
+plt.close('all')
 
 
 # Function for parse sound_array
