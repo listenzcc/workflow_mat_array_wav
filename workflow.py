@@ -2,14 +2,16 @@ import scipy.fftpack
 from pprint import pprint
 import numpy as np
 import matplotlib.pyplot as plt
-import scipy.io as sio
+import scipy.io
+import scipy.fftpack
+import scipy.signal
 import wave
 from matplotlib.backends.backend_pdf import PdfPages
 
 # Read mat file
 fname = 'speechToken.mat'
 # Fetch context in mat
-mat = sio.loadmat(fname)
+mat = scipy.io.loadmat(fname)
 pprint(mat)
 # We want tokenS
 print(mat['tokenS'].shape)
@@ -44,6 +46,18 @@ def myifft(fft, fftfreq):
     return np.real(scipy.fftpack.ifft(fft)), fft
 
 
+def mywavelet(sig, times=times, framerate=framerate):
+    widths = [framerate/e for e in range(300, 3000, 100)]
+    cwtmatr = scipy.signal.cwt(sig, scipy.signal.ricker, widths)
+    fig, axe = plt.subplots(1, 1)
+    x = axe.imshow(cwtmatr,
+                   extent=[min(times), max(times), min(widths), max(widths)],
+                   cmap='PRGn', aspect='auto',
+                   vmax=abs(cwtmatr).max(), vmin=-abs(cwtmatr).max())
+    fig.colorbar(x, ax=axe)
+    return cwtmatr, fig
+
+
 figs = []
 for j, s in enumerate(sounds):
     s = s.copy().ravel()
@@ -69,6 +83,10 @@ for j, s in enumerate(sounds):
     axes[1, 1].plot(fftfreq[select], 10 * np.log10(psd[select]))
     axes[1, 1].set_xlim(freq_range)
 
+    fig.suptitle('Sound: %d' % j)
+    figs.append(fig)
+
+    _, fig = mywavelet(slow)
     fig.suptitle('Sound: %d' % j)
     figs.append(fig)
 
